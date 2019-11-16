@@ -11,11 +11,12 @@ torch.manual_seed(42)
 np.random.seed(42)
 
 #read and import dataset
-base_skin_dir = os.path.join('..', 'input')
+base_skin_dir = '/Users/howardhuang/Documents/TopDoc/skin-cancer-mnist-ham10000/HAM10000_images_part_1'
 
 imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
-                     for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
-
+                     for x in glob(os.path.join(base_skin_dir, '*.jpg'))}
+print("dictionary: ")
+print(imageid_path_dict)
 lesion_type_dict = {
     'nv': 'Melanocytic nevi',
     'mel': 'dermatofibroma',
@@ -26,8 +27,10 @@ lesion_type_dict = {
     'df': 'Dermatofibroma'
 }
 
-tile_df = pd.read_csv(os.path.join('skin-cancer-mnist-ham10000/HAM10000_metadata.csv'))
+
+tile_df = pd.read_csv('/Users/howardhuang/Documents/TopDoc/skin-cancer-mnist-ham10000/HAM10000_metadata.csv')
 tile_df['path'] = tile_df['image_id'].map(imageid_path_dict.get)
+print(tile_df['path'])
 tile_df['cell_type'] = tile_df['dx'].map(lesion_type_dict.get)
 tile_df['cell_type_idx'] = pd.Categorical(tile_df['cell_type']).codes
 tile_df[['cell_type_idx', 'cell_type']].sort_values('cell_type_idx').drop_duplicates()
@@ -35,7 +38,7 @@ tile_df[['cell_type_idx', 'cell_type']].sort_values('cell_type_idx').drop_duplic
 #counts number of each type of tumor in dataset
 tile_df['cell_type'].value_counts()
 
-tile_df.sample(3)
+print(tile_df.sample(3))
 
 #load in a pretrained ResNet50 model
 import torchvision.models as models
@@ -75,6 +78,9 @@ train_df = train_df.reset_index()
 validation_df = validation_df.reset_index()
 test_df = test_df.reset_index()
 
+print("----TRAINDF---")
+print(train_df)
+
 class Dataset(data.Dataset):
     'Characterizes a dataset for PyTorch'
     def __init__(self, df, transform=None):
@@ -89,7 +95,7 @@ class Dataset(data.Dataset):
     def __getitem__(self, index):
         'Generates one sample of data'
         # Load data and get label
-        X = Image.open(self.df['path'][index])
+        X = Image.open(open(self.df['path'][index], 'rb'))
         y = torch.tensor(int(self.df['cell_type_idx'][index]))
 
         if self.transform:
@@ -129,18 +135,24 @@ test_generator = data.SequentialSampler(validation_set)
 result_array = []
 gt_array = []
 for i in test_generator:
+    if validation_set.df['path'][i] == None:
+        continue
     data_sample, y = validation_set.__getitem__(i)
     data_gpu = data_sample.unsqueeze(0).to(device)
     output = model(data_gpu)
     result = torch.argmax(output)
     result_array.append(result.item())
     gt_array.append(y.item())
-
+# checks if answers are actually correct/matches guess to actual
     correct_results = np.array(result_array)==np.array(gt_array)
 
+print(gt_array)
 sum_correct = np.sum(correct_results)
-
-accuracy = sum_correct/test_generator.__len__()
+print("Sum Correct is: ")
+print(sum_correct)
+print("Total Number of Test Cases: ")
+print(test_generator.__len__())
+accuracy = sum_correct*1.0/test_generator.__len__()
 
 print(result_array)
 print(accuracy)
