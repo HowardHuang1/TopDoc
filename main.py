@@ -15,8 +15,8 @@ base_skin_dir = '/Users/howardhuang/Documents/TopDoc/skin-cancer-mnist-ham10000/
 
 imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
                      for x in glob(os.path.join(base_skin_dir, '*.jpg'))}
-print("dictionary: ")
-print(imageid_path_dict)
+#print("dictionary: ")
+#print(imageid_path_dict)
 lesion_type_dict = {
     'nv': 'Melanocytic nevi',
     'mel': 'dermatofibroma',
@@ -29,7 +29,7 @@ lesion_type_dict = {
 
 tile_df = pd.read_csv('/Users/howardhuang/Documents/TopDoc/skin-cancer-mnist-ham10000/HAM10000_metadata.csv')
 tile_df['path'] = tile_df['image_id'].map(imageid_path_dict.get)
-print(tile_df['path'])
+#print(tile_df['path'])
 tile_df['cell_type'] = tile_df['dx'].map(lesion_type_dict.get)
 tile_df['cell_type_idx'] = pd.Categorical(tile_df['cell_type']).codes
 tile_df[['cell_type_idx', 'cell_type']].sort_values('cell_type_idx').drop_duplicates()
@@ -37,20 +37,20 @@ tile_df[['cell_type_idx', 'cell_type']].sort_values('cell_type_idx').drop_duplic
 #counts number of each type of tumor in dataset
 tile_df['cell_type'].value_counts()
 
-print(tile_df.sample(3))
+#print(tile_df.sample(3))
 
 #load in a pretrained ResNet50 model
 import torchvision.models as models
 model_conv = models.resnet50(pretrained=True)
 
 #Convoluted Neural Network
-print(model_conv)
+#print(model_conv)
 
 #adjust last layer of (FC) We deal with only 7 cases so chain 1000 output neurons to 7 neurons
 num_ftrs = model_conv.fc.in_features
 model_conv.fc = torch.nn.Linear(num_ftrs, 7)
 
-print(model_conv.fc)
+#print(model_conv.fc)
 ## Linear(in_features=2048, out_features=7, bias=True)
 
 # Define the device:
@@ -70,8 +70,8 @@ train_df = train_df.reset_index()
 validation_df = validation_df.reset_index()
 test_df = test_df.reset_index()
 
-print("----TRAINDF---")
-print(train_df)
+#print("----TRAINDF---")
+#print(train_df)
 
 class Dataset(data.Dataset):
     'Characterizes a dataset for PyTorch'
@@ -125,4 +125,19 @@ if validation_set.transform:
 data_gpu = data_sample.unsqueeze(0).to(device)
 output = model(data_gpu)
 result = torch.argmax(output)
-print(result)
+final = str(result)
+
+if final == 'tensor(0)':
+    ret = 'POSITIVE FOR SKIN CANCER: Melanocytic nevi'
+elif final == 'tensor(1)' or final == 'tensor(6)':
+    ret = 'POSITIVE FOR SKIN CANCER: Dermatofibroma'
+elif final == 'tensor(2)':
+    ret = 'NEGATIVE FOR SKIN CANCER: Benign keratosis-like lesions'
+elif final == 'tensor(3)':
+    ret = 'POSITIVE FOR SKIN CANCER: Basal cell carcinoma'
+elif final == 'tensor(4)':
+    ret = 'POSITIVE FOR SKIN CANCER: Actinic keratoses'
+elif final == 'tensor(5)':
+    ret = 'POSITIVE FOR SKIN CANCER: Vascular lesions'
+
+print(ret)
