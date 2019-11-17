@@ -27,7 +27,6 @@ lesion_type_dict = {
     'df': 'Dermatofibroma'
 }
 
-
 tile_df = pd.read_csv('/Users/howardhuang/Documents/TopDoc/skin-cancer-mnist-ham10000/HAM10000_metadata.csv')
 tile_df['path'] = tile_df['image_id'].map(imageid_path_dict.get)
 print(tile_df['path'])
@@ -44,12 +43,8 @@ print(tile_df.sample(3))
 import torchvision.models as models
 model_conv = models.resnet50(pretrained=True)
 
-
 #Convoluted Neural Network
 print(model_conv)
-
-## print(model_conv.fc)
-## Linear(in_features=2048, out_features=1000, bias=True)
 
 #adjust last layer of (FC) We deal with only 7 cases so chain 1000 output neurons to 7 neurons
 num_ftrs = model_conv.fc.in_features
@@ -58,9 +53,6 @@ model_conv.fc = torch.nn.Linear(num_ftrs, 7)
 print(model_conv.fc)
 ## Linear(in_features=2048, out_features=7, bias=True)
 
-
-
-######################################################################
 # Define the device:
 device = torch.device('cpu:0')
 
@@ -123,36 +115,14 @@ validation_generator = data.DataLoader(validation_set, **params)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
 criterion = torch.nn.CrossEntropyLoss()
 
-#plt.plot(trainings_error, label = 'training error')
-#plt.plot(validation_error, label = 'validation error')
-#plt.legend()
-#plt.show()
-
 model.eval()
 test_set = Dataset(validation_df, transform=composed)
 test_generator = data.SequentialSampler(validation_set)
 
-result_array = []
-gt_array = []
-for i in test_generator:
-    if validation_set.df['path'][i] == None:
-        continue
-    data_sample, y = validation_set.__getitem__(i)
-    data_gpu = data_sample.unsqueeze(0).to(device)
-    output = model(data_gpu)
-    result = torch.argmax(output)
-    result_array.append(result.item())
-    gt_array.append(y.item())
-# checks if answers are actually correct/matches guess to actual
-    correct_results = np.array(result_array)==np.array(gt_array)
-
-print(gt_array)
-sum_correct = np.sum(correct_results)
-print("Sum Correct is: ")
-print(sum_correct)
-print("Total Number of Test Cases: ")
-print(test_generator.__len__())
-accuracy = sum_correct*1.0/test_generator.__len__()
-
-print(result_array)
-print(accuracy)
+data_sample = Image.open(open('/Users/howardhuang/Documents/TopDoc/skin-cancer-mnist-ham10000/HAM10000_images_part_1/ISIC_0024664.jpg', 'rb'))
+if validation_set.transform:
+    data_sample = validation_set.transform(data_sample)
+data_gpu = data_sample.unsqueeze(0).to(device)
+output = model(data_gpu)
+result = torch.argmax(output)
+print(result)
